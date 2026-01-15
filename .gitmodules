@@ -1,6 +1,6 @@
-[submodule "external/pacs-ai"]
-	path = external/pacs-ai-backend
-	url = https://github.com/HeartWise-AI/pacs-ai-backend.git
 [submodule "external/pacs-ai-frontend"]
 	path = external/pacs-ai-frontend
 	url = https://github.com/HeartWise-AI/PACS-AI.git
+[submodule "external/pacs-ai-backend"]
+	path = external/pacs-ai-backend
+	url = https://github.com/HeartWise-AI/pacs-ai-backend.git
