@@ -28,16 +28,25 @@ git -C external/pacs-ai-frontend checkout "$PACS_AI_FRONTEND_VERSION"
 git -C external/pacs-ai-backend pull origin "$PACS_AI_BACKEND_VERSION"
 git -C external/pacs-ai-frontend pull origin "$PACS_AI_FRONTEND_VERSION"
 
+if [ $ENVIRONMENT = "dev" ]; then
+    echo "Loading PACS-AI submodules recursively for development environment"
+    git -C external/pacs-ai-frontend submodule update --init --recursive
+fi
+
 echo "PACS-AI components have been downloaded and checked out to specified versions."
 
 # Create sandbox directory structure
-cp -R external/pacs-ai-backend "$SANDBOX_PATH/pacs-ai-backend"
-cp -R external/pacs-ai-frontend "$SANDBOX_PATH/PACS-AI"
+mkdir -p $SANDBOX_PATH/pacs-ai-backend
+mkdir -p $SANDBOX_PATH/PACS-AI
+cp -R external/pacs-ai-backend/. "$SANDBOX_PATH/pacs-ai-backend"
+cp -R external/pacs-ai-frontend/. "$SANDBOX_PATH/PACS-AI"
 
 rm -f $SANDBOX_PATH/PACS-AI/platform/app/.env.example
 rm -f $SANDBOX_PATH/pacs-ai-backend/api-pacs/.env.example
 rm -f $SANDBOX_PATH/pacs-ai-backend/orthanc/.env.example
 rm -f $SANDBOX_PATH/pacs-ai-backend/nginx/.env.example
+
+echo "Sandbox directory structure created and sanitized at $SANDBOX_PATH."
 
 # Configuration using environments
 
@@ -48,6 +57,8 @@ else
 fi
 
 export $(grep -v '^#' $SANDBOX_PATH/.env.sandbox | xargs)
+
+echo "Sandbox environment loaded in current shell."
 
 ## Configure PACS-AI platform app
 
@@ -66,6 +77,8 @@ EOF
 merge_dotenv external/pacs-ai-frontend/platform/app/.env.example /tmp/platform.env \
     $SANDBOX_PATH/PACS-AI/platform/app/.env
 
+echo "PACS-AI platform app configured."
+
 ## Configure PACS-AI nginx
 
 cat << EOF > /tmp/nginx.env
@@ -81,6 +94,8 @@ if [ $ENVIRONMENT = "prod" ]; then
     cp $PACS_AI_BACKEND_KEY_FILE_PATH $SANDBOX_PATH/pacs-ai-backend/nginx/ssl/nginx.key
 fi
 
+echo "PACS-AI nginx configured."
+
 ## Configure PACS-AI Orthanc
 
 cat << EOF > /tmp/orthanc.env
@@ -91,13 +106,21 @@ EOF
 merge_dotenv external/pacs-ai-backend/orthanc/.env.example /tmp/orthanc.env \
     $SANDBOX_PATH/pacs-ai-backend/orthanc/.env
 
+echo "PACS-AI Orthanc configured."
+
 ## Configure PACS-AI API
 
 cp $FIREBASE_CONFIG_FILE_PATH $SANDBOX_PATH/pacs-ai-backend/api-pacs/configs/firebase/pacs-ai-firebase-admin.json
 
-merge_dotenv external/pacs-ai-backend/api-pacs/.env.example $SANDBOX_PATH/.env.sandbox \
-    $SANDBOX_PATH/pacs-ai-backend/api-pacs/.env
+merge_dotenv external/pacs-ai-backend/api-pacs/.env.example $SANDBOX_PATH/.env.sandbox /tmp/api-pacs.env
 
+cat << EOF > /tmp/api-pacs-up.env
+FIREBASE_CONFIG_FILE_PATH=pacs-ai-backend/api-pacs/configs/firebase/pacs-ai-firebase-admin.json
+EOF
+
+merge_dotenv /tmp/api-pacs.env /tmp/api-pacs-up.env $SANDBOX_PATH/pacs-ai-backend/api-pacs/.env
+
+echo "PACS-AI API configured."
 
 if [ $ENVIRONMENT = "dev" ]; then
 
@@ -138,3 +161,5 @@ yarn install
 cd $CWD
 
 fi
+
+echo "Sandbox creation completed successfully."

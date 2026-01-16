@@ -44,3 +44,15 @@ refine the deployment process and provide general recipes for common infrastruct
    |-------------------------|---------------------------------------|
    | MAILCHIMP_API_KEY       | Your Mailchimp API key                |
    | MAILCHIMP_LIST_ID       | The ID of the audience/list to subscribe users to |
+
+
+## Troubleshooting
+
+### PACS-AI server raises `System limit for number of file watchers reached`
+
+If you see this error in the PACS-AI backend logs, increase the number of file watchers on your system by running the following command:
+
+```bash
+DESIRED_WATCHES=524288
+echo fs.inotify.max_user_watches=$DESIRED_WATCHES | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+```
