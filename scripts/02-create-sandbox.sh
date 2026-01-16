@@ -112,13 +112,45 @@ echo "PACS-AI Orthanc configured."
 
 cp $FIREBASE_CONFIG_FILE_PATH $SANDBOX_PATH/pacs-ai-backend/api-pacs/configs/firebase/pacs-ai-firebase-admin.json
 
-merge_dotenv external/pacs-ai-backend/api-pacs/.env.example $SANDBOX_PATH/.env.sandbox /tmp/api-pacs.env
+if [ $ENVIRONMENT = "prod" ]; then
 
-cat << EOF > /tmp/api-pacs-up.env
-FIREBASE_CONFIG_FILE_PATH=pacs-ai-backend/api-pacs/configs/firebase/pacs-ai-firebase-admin.json
+echo "not implemented yet !"
+exit 1
+
+else
+
+cat << EOF > /tmp/api-pacs.env
+API_NAME=$API_NAME
+API_URL_REST_PORT=$API_URL_REST_PORT
+APP_URL=$APP_URL
+CLOUDFLARE_SECRET_KEY=$CLOUDFLARE_SECRET_KEY
+CLOUDFLARE_TURNSTILE_BASE_URL=$CLOUDFLARE_TURNSTILE_BASE_URL
+DOCKER_USERNAME=$DOCKER_USERNAME
+DOCKER_PASSWORD=$DOCKER_PASSWORD
+DOCKER_NETWORK=$DOCKER_NETWORK
+ELASTICSEARCH_URL=$ELASTICSEARCH_URL
+FIREBASE_CONFIG_FILE_PATH=/app/build/configs/firebase/pacs-ai-firebase-admin.json
+FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID
+FIREBASE_SUPERUSER_KEY=$FIREBASE_SUPERUSER_KEY
+KIBANA_BASE_URL=$KIBANA_BASE_URL
+MAILCHIMP_API_KEY=$MAILCHIMP_API_KEY
+MAILCHIMP_BASE_URL=$MAILCHIMP_BASE_URL
+MAILCHIMP_LIST_ID=$MAILCHIMP_LIST_ID
+MAILGUN_API_KEY=$MAILGUN_API_KEY
+MAILGUN_DOMAIN=$MAILGUN_DOMAIN
+MAILGUN_SENDER_EMAIL=$MAILGUN_SENDER_EMAIL
+OPENAPI_DOCS_PASSWORD=$OPENAPI_DOCS_PASSWORD
+ORTHANC_AET=$ORTHANC_AET
+ORTHANC_BASE_URL=$ORTHANC_BASE_URL
+REDIS_HOST=$REDIS_HOST
+REDIS_PORT=$REDIS_PORT
+REDIS_PASSWORD=$REDIS_PASSWORD
+REDIS_IAM_DB=$REDIS_IAM_DB
 EOF
 
-merge_dotenv /tmp/api-pacs.env /tmp/api-pacs-up.env $SANDBOX_PATH/pacs-ai-backend/api-pacs/.env
+fi
+
+merge_dotenv external/pacs-ai-backend/api-pacs/.env.example /tmp/api-pacs.env $SANDBOX_PATH/pacs-ai-backend/api-pacs/.env
 
 echo "PACS-AI API configured."
 

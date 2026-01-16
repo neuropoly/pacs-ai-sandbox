@@ -7,7 +7,7 @@ refine the deployment process and provide general recipes for common infrastruct
 
 1. Run `scripts/01-prerequisites.sh` to install necessary tools.
 2. Setup your Google Cloud, Firebase and Mailgun projects as described in the [PACS-AI deployment documentation](https://github.com/HeartWise-AI/pacs-ai-backend?tab=readme-ov-file#2-external-services-setup). Disregard any modifications to the PACS-AI code, this sandbox will handle it. When ask to copy **private keys**, place them in this repository's root, using the same names.
-3. Fill the environment file with the required configuration
+3. Fill the environment file (`.env`) with the required configuration
 
    From the Google Cloud Console, find the `prod` tenant created for PACS-AI and copy its ID (`prod-***`) to the
    `GCP_TENANT_ID` parameter in the `.env` file.
@@ -45,6 +45,30 @@ refine the deployment process and provide general recipes for common infrastruct
    | MAILCHIMP_API_KEY       | Your Mailchimp API key                |
    | MAILCHIMP_LIST_ID       | The ID of the audience/list to subscribe users to |
 
+5. Create the sandbox:
+   ```bash
+   bash scripts/02-create-sandbox.sh sandbox
+   ```
+
+6. Patch the sandbox (fixes Docker networking and permissions):
+   ```bash
+   bash scripts/03-patch-pacs-ai-sandbox.sh sandbox
+   ```
+
+7. Launch the PACS-AI services:
+   ```bash
+   bash scripts/04-run-sandbox.sh sandbox
+   ```
+
+8. Access the application:
+   - Frontend: http://localhost:3000
+   - API: http://localhost/api
+   - API Documentation: http://localhost/api/docs
+
+9. Verify deployment health:
+   ```bash
+   bash scripts/99-network-test.sh
+   ```
 
 ## Troubleshooting
 
