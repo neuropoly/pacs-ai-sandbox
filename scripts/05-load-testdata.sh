@@ -91,7 +91,7 @@ if [ -n "$FRONTEND_TESTDATA" ] && [ -d "$FRONTEND_TESTDATA" ]; then
                 
                 # Copy DICOMweb data
                 echo "   → Copying DICOMweb testdata to sandbox frontend..."
-                cp -R "$FRONTEND_TESTDATA"/* "$SANDBOX_FRONTEND/testdata/" 2>/dev/null || true
+                cp -R "$FRONTEND_TESTDATA"/. "$SANDBOX_FRONTEND/testdata/" 2>/dev/null || true
                 echo "   ✓ DICOMweb data available at sandbox/PACS-AI/platform/app/public/testdata/"
             else
                 echo "   ⚠ Sandbox frontend public directory not found"
@@ -127,6 +127,9 @@ echo "=========================================="
 echo "Test Data Loading Complete"
 echo "=========================================="
 echo ""
+
+# Ensure the directory exists before counting
+mkdir -p "$REPO_ROOT/data/sample-studies/testdata-from-external"
 
 # Count total files loaded
 TOTAL_DICOM=$(find "$REPO_ROOT/data/sample-studies/testdata-from-external" -name "*.dcm" 2>/dev/null | wc -l || echo "0")
