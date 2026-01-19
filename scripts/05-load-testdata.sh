@@ -154,3 +154,63 @@ echo ""
 echo "Note: DICOMweb data (if found) is copied to:"
 echo "  → $SANDBOX_PATH/PACS-AI/platform/app/public/testdata/"
 echo ""
+
+# Upload DICOM files to hospital PACS containers if they're running
+if [ "$TOTAL_DICOM" -gt 0 ]; then
+    echo "Attempting to upload DICOM files to hospital PACS containers..."
+    echo ""
+    
+    # Check if we can reach the hospital PACS containers
+    # These are typically at localhost:8063, 8073, 8083 when running
+    
+    UPLOADED=false
+    
+    # Try uploading to orthanc-hospital-1-store (port 8073)
+    if command -v curl &> /dev/null; then
+        if curl -s -f "http://localhost:8073/system" > /dev/null 2>&1; then
+            echo "  → Uploading to orthanc-hospital-1-store (http://localhost:8073)..."
+            UPLOAD_COUNT=0
+            for dcm_file in "$REPO_ROOT/data/sample-studies/testdata-from-external"/*.dcm; do
+                if [ -f "$dcm_file" ]; then
+                    if curl -s -X POST "http://localhost:8073/instances" \
+                        -H "Content-Type: application/dicom" \
+                        --data-binary "@$dcm_file" > /dev/null 2>&1; then
+                        ((UPLOAD_COUNT++))
+                    fi
+                fi
+            done
+            if [ "$UPLOAD_COUNT" -gt 0 ]; then
+                echo "    ✓ Uploaded $UPLOAD_COUNT DICOM files to orthanc-hospital-1-store"
+                UPLOADED=true
+            fi
+        fi
+        
+        # Try uploading to orthanc-hospital-2 (port 8083)
+        if curl -s -f "http://localhost:8083/system" > /dev/null 2>&1; then
+            echo "  → Uploading to orthanc-hospital-2 (http://localhost:8083)..."
+            UPLOAD_COUNT=0
+            for dcm_file in "$REPO_ROOT/data/sample-studies/testdata-from-external"/*.dcm; do
+                if [ -f "$dcm_file" ]; then
+                    if curl -s -X POST "http://localhost:8083/instances" \
+                        -H "Content-Type: application/dicom" \
+                        --data-binary "@$dcm_file" > /dev/null 2>&1; then
+                        ((UPLOAD_COUNT++))
+                    fi
+                fi
+            done
+            if [ "$UPLOAD_COUNT" -gt 0 ]; then
+                echo "    ✓ Uploaded $UPLOAD_COUNT DICOM files to orthanc-hospital-2"
+                UPLOADED=true
+            fi
+        fi
+    fi
+    
+    if [ "$UPLOADED" = false ]; then
+        echo "  ℹ Hospital PACS containers not yet running or not accessible"
+        echo "  → Start the sandbox with scripts/04-run-sandbox.sh"
+        echo "  → Then run: RELOAD_TESTDATA=true bash scripts/04-run-sandbox.sh $SANDBOX_PATH"
+        echo "     to upload the test data to running containers"
+    fi
+    echo ""
+fi
+

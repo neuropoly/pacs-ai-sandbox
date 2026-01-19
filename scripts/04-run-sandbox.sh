@@ -39,7 +39,24 @@ if [ $ENVIRONMENT = "dev" ]; then
 
     echo "Starting PACS-AI backend"
     cd $SANDBOX_PATH/pacs-ai-backend
-    make up
+    make up &
+    BACKEND_PID=$!
+    
+    # Wait for containers to start, then upload testdata
+    echo "Waiting for containers to start (30 seconds)..."
+    sleep 30
+    
+    cd $CWD
+    echo "Uploading test data to hospital PACS containers..."
+    if bash scripts/05-load-testdata.sh "$SANDBOX_PATH"; then
+        echo "✓ Test data uploaded successfully"
+    else
+        echo "⚠ Test data upload incomplete - you can retry with:"
+        echo "  bash scripts/05-load-testdata.sh $SANDBOX_PATH"
+    fi
+    
+    # Wait for backend to finish (it won't, but this keeps the script running)
+    wait $BACKEND_PID
 else
     echo "Starting PACS-AI backend"
     cd $SANDBOX_PATH/pacs-ai-backend
