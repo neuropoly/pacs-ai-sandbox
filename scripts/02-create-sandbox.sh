@@ -194,4 +194,10 @@ cd $CWD
 
 fi
 
+# Load test data from external repositories (dev mode only)
+if [ $ENVIRONMENT = "dev" ]; then
+    echo "Loading test data from external repositories..."
+    bash scripts/05-load-testdata.sh "$SANDBOX_PATH"
+fi
+
 echo "Sandbox creation completed successfully."

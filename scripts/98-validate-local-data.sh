@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Load sample DICOM data into Orthanc server
-# This script provides utilities to check DICOM files in the data/sample-studies directory
-# and verify Orthanc connectivity for testing and development.
+# Validate local DICOM and DICOMweb sample data configuration
+# This script validates that sample data directories are properly configured
+# and checks connectivity to the Orthanc PACS server.
 
 ORTHANC_URL=${1:-"http://localhost:8053"}
 
@@ -14,10 +14,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DATA_DIR="$REPO_ROOT/data/sample-studies"
 
 echo "=========================================="
-echo "PACS-AI Sample Data Loader"
+echo "PACS-AI Local Data Validation"
 echo "=========================================="
 echo ""
-echo "This script helps verify sample DICOM data configuration."
+echo "Validating sample DICOM and DICOMweb data configuration..."
 echo ""
 
 # Check if data directory exists

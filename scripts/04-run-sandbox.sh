@@ -16,6 +16,12 @@ docker network inspect pacs-net >/dev/null 2>&1 || \
 
 if [ $ENVIRONMENT = "dev" ]; then
     echo "Starting PACS-AI development server"
+    
+    # Optionally reload test data if requested
+    if [ "$RELOAD_TESTDATA" = "true" ]; then
+        echo "Reloading test data from external repositories..."
+        bash scripts/05-load-testdata.sh "$SANDBOX_PATH"
+    fi
 
     CWD=$(pwd)
     cd $SANDBOX_PATH/PACS-AI

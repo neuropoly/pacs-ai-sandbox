@@ -185,6 +185,29 @@ else
 fi
 echo ""
 
+# 8. Configure DICOMweb test data mounting for frontend (dev mode only)
+echo "8. Configuring DICOMweb test data for frontend..."
+
+# Check if sandbox frontend testdata exists
+FRONTEND_TESTDATA="$SANDBOX_PATH/PACS-AI/platform/app/public/testdata"
+
+if [ -d "$FRONTEND_TESTDATA" ]; then
+    # Count DICOMweb files (typically .json, .jpg, .dcm in specific structure)
+    DICOMWEB_FILES=$(find "$FRONTEND_TESTDATA" -type f 2>/dev/null | wc -l)
+    echo "   ✓ Frontend testdata directory exists"
+    echo "   ℹ DICOMweb test files found: $DICOMWEB_FILES"
+    
+    if [ "$DICOMWEB_FILES" -gt 0 ]; then
+        echo "   ✓ DICOMweb test data will be served by frontend application"
+    else
+        echo "   ℹ No DICOMweb files found. Run scripts/05-load-testdata.sh to populate"
+    fi
+else
+    echo "   ℹ Frontend testdata directory not yet created"
+    echo "   → It will be created when running scripts/05-load-testdata.sh"
+fi
+echo ""
+
 echo "=========================================="
 echo "Sandbox Patching Complete!"
 echo "=========================================="
@@ -197,6 +220,7 @@ echo "  ✓ orthanc-pacs enabled (hospital PACS simulation)"
 echo "  ✓ orthanc-hospital-1 volume separation fixed (prevents SQLite locks)"
 echo "  ✓ nginx routes updated to match actual container names"
 echo "  ✓ sample DICOM data volume mounted (zero-overhead access)"
+echo "  ✓ DICOMweb test data configured for frontend"
 echo ""
 echo "Hospital PACS Simulation Containers:"
 echo "  • orthanc-hospital-1-query (DICOM Query/Move) - http://localhost:8063"

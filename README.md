@@ -120,16 +120,33 @@ This will install:
 
 ## Development Features
 
-### Sample DICOM Data
+### Sample DICOM and DICOMweb Data
 
-In **development mode**, the sandbox provides a zero-overhead mechanism to access sample DICOM studies for testing:
+In **development mode**, the sandbox provides multiple ways to access sample medical imaging data for testing:
+
+#### 1. Test Data from External Repositories
+
+The sandbox **automatically loads test data** from the external PACS-AI repositories during sandbox creation:
+
+- **DICOMweb test data**: Loaded from `external/pacs-ai-frontend/platform/app/public/testdata/` and made available to the frontend application
+- **DICOM test files**: Loaded from testdata directories in external repositories and placed in `data/sample-studies/testdata-from-external/`
+- **Automatic loading**: Runs during `scripts/02-create-sandbox.sh` in dev mode
+
+To manually reload test data from external repositories:
+```bash
+bash scripts/05-load-testdata.sh sandbox
+```
+
+#### 2. Custom Local DICOM Data
+
+You can also add your own DICOM files for testing:
 
 - **Zero-overhead mounting**: Sample studies are directly mounted into the Orthanc container via Docker volumes
-- **No data copying**: Direct filesystem access without duplication
+- **No data copying**: Direct filesystem access without duplication for local files
 - **Automatic configuration**: Volume mount is configured during sandbox patching
 - **Easy access**: Files are available at `/data` inside the Orthanc container
 
-#### Adding Sample Data
+**Adding Custom Data:**
 
 1. Place your DICOM files (`.dcm`) in the `data/sample-studies/` directory:
    ```bash
@@ -138,9 +155,9 @@ In **development mode**, the sandbox provides a zero-overhead mechanism to acces
    data/sample-studies/study-002/*.dcm
    ```
 
-2. Run the data loader helper script (optional, for verification):
+2. Run the validation script to verify:
    ```bash
-   bash scripts/05-load-sample-data.sh
+   bash scripts/98-validate-local-data.sh
    ```
 
 3. Access the data through Orthanc's web interface or API
