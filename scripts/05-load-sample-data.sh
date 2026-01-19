@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 
 # Load sample DICOM data into Orthanc server
-# This script provides utilities to import DICOM files from the data/sample-studies directory
-# into the Orthanc PACS server for testing and development.
+# This script provides utilities to check DICOM files in the data/sample-studies directory
+# and verify Orthanc connectivity for testing and development.
 
-SANDBOX_PATH=$1
-ORTHANC_URL=${2:-"http://localhost:8053"}
+ORTHANC_URL=${1:-"http://localhost:8053"}
 
 set -e
 
@@ -14,17 +13,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DATA_DIR="$REPO_ROOT/data/sample-studies"
 
-if [ -z "$SANDBOX_PATH" ]; then
-    echo "Error: SANDBOX_PATH argument is required"
-    echo "Usage: bash scripts/05-load-sample-data.sh <sandbox-path> [orthanc-url]"
-    exit 1
-fi
-
 echo "=========================================="
 echo "PACS-AI Sample Data Loader"
 echo "=========================================="
 echo ""
-echo "This script helps load sample DICOM data into Orthanc."
+echo "This script helps verify sample DICOM data configuration."
 echo ""
 
 # Check if data directory exists

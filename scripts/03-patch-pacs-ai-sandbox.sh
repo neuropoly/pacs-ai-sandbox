@@ -152,9 +152,11 @@ else
         # Check if volume is already added
         if ! grep -q "/data:ro" "$SANDBOX_PATH/pacs-ai-backend/orthanc/docker-compose-dev.yml" 2>/dev/null; then
             # Add data volume mount to orthanc service
-            # Insert the volume mount before the ports section
+            # Use awk to find the orthanc service volumes section specifically
             awk -v data_dir="$DATA_DIR" '
-                /^    volumes:/ {
+                /^  orthanc:/ { in_orthanc=1 }
+                /^  [a-z]/ && !/^  orthanc:/ { in_orthanc=0 }
+                in_orthanc && /^    volumes:/ {
                     print
                     print "      - " data_dir ":/data:ro"
                     next
@@ -173,7 +175,11 @@ else
     fi
     
     # Count DICOM files in sample data
-    DICOM_COUNT=$(find "$DATA_DIR" -name "*.dcm" 2>/dev/null | wc -l || echo "0")
+    if [ -d "$DATA_DIR" ]; then
+        DICOM_COUNT=$(find "$DATA_DIR" -name "*.dcm" 2>/dev/null | wc -l)
+    else
+        DICOM_COUNT=0
+    fi
     echo "   ℹ Sample data directory: $DATA_DIR"
     echo "   ℹ DICOM files found: $DICOM_COUNT"
     

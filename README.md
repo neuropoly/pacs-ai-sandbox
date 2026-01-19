@@ -140,7 +140,7 @@ In **development mode**, the sandbox provides a zero-overhead mechanism to acces
 
 2. Run the data loader helper script (optional, for verification):
    ```bash
-   bash scripts/05-load-sample-data.sh sandbox
+   bash scripts/05-load-sample-data.sh
    ```
 
 3. Access the data through Orthanc's web interface or API
