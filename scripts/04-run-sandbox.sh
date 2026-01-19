@@ -43,8 +43,9 @@ if [ $ENVIRONMENT = "dev" ]; then
     BACKEND_PID=$!
     
     # Wait for containers to start, then upload testdata
-    echo "Waiting for containers to start (30 seconds)..."
-    sleep 30
+    STARTUP_DELAY=${TESTDATA_UPLOAD_DELAY:-30}
+    echo "Waiting for containers to start ($STARTUP_DELAY seconds)..."
+    sleep "$STARTUP_DELAY"
     
     cd $CWD
     echo "Uploading test data to hospital PACS containers..."
@@ -55,8 +56,15 @@ if [ $ENVIRONMENT = "dev" ]; then
         echo "  bash scripts/05-load-testdata.sh $SANDBOX_PATH"
     fi
     
-    # Wait for backend to finish (it won't, but this keeps the script running)
-    wait $BACKEND_PID
+    # Keep the script running (backend process continues in background)
+    echo ""
+    echo "Sandbox is running. Press Ctrl+C to stop."
+    echo "  Frontend: http://localhost:3000"
+    echo "  API: http://localhost/api"
+    echo ""
+    
+    # Wait indefinitely (backend runs in background)
+    wait
 else
     echo "Starting PACS-AI backend"
     cd $SANDBOX_PATH/pacs-ai-backend
