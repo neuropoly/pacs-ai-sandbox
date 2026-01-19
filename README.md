@@ -70,6 +70,77 @@ refine the deployment process and provide general recipes for common infrastruct
    bash scripts/99-network-test.sh
    ```
 
+## Post-Deployment Configuration
+
+### Configure Hospital DICOM Modalities
+
+After the first deployment, the hospital PACS simulation modalities are registered in Orthanc but need to be configured through the admin UI to enable DICOM query/retrieve/store operations.
+
+**Step-by-step guide:**
+
+1. **Create a tenant owner account** (first-time setup only):
+   ```bash
+   # Get your Firebase auth token from the browser
+   # Then create an owner user with the superuser API:
+   curl -X POST http://localhost/api/v1/user/owner/add \
+     -H "Content-Type: application/json" \
+     -H "X-FB-SUDO-KEY: 12345" \
+     -d '{
+       "tenantId": "prod-XXXXX",
+       "email": "admin@example.com",
+       "password": "YourSecurePassword",
+       "lastName": "Admin",
+       "firstName": "System"
+     }'
+   ```
+   Replace `prod-XXXXX` with your tenant ID from the `.env` file.
+
+2. **Log into the PACS-AI frontend** at http://localhost:3000 with your owner account.
+
+3. **Navigate to the Admin section** (accessible from the top-right user menu).
+
+4. **Go to the Modalities tab** where you'll see three hospital modalities:
+   - `hospital-1-query` (HOSPITAL_1_QUERY)
+   - `hospital-1-store` (HOSPITAL_1_STORE)
+   - `hospital-2` (HOSPITAL_2)
+
+5. **For each modality, click the edit button** (pencil icon) and:
+   - ✅ Enable **C-FIND** (DICOM Query)
+   - ✅ Enable **C-MOVE** (DICOM Retrieve)
+   - ✅ Enable **C-STORE** (DICOM Store)
+   - Click **Save**
+
+6. **Verify the configuration**:
+   - All three checkboxes should now show as enabled in the modalities list
+   - The frontend can now query studies from hospital PACS systems
+
+**What this does:**
+- Updates the DICOM permissions in Orthanc (AllowFind, AllowMove, AllowStore)
+- Stores the enabled features in Firestore database
+- Enables the frontend to perform DICOM query/retrieve operations
+
+**Note:** The modalities are automatically registered in Orthanc during the patch step (step 6), but the DICOM operation flags default to disabled until configured through the UI.
+
+### Upload Sample DICOM Data (Optional)
+
+To populate the hospital PACS simulators with sample studies for testing:
+
+```bash
+bash scripts/06-upload-sample-dicom-data.sh
+```
+
+This uploads:
+- **hospital-1-query**: 3 MRI studies from 2015 (134 DICOM instances)
+  - Study dates: 2015-04-13, 2015-05-26
+  - Patient: MS (head scans)
+- **hospital-2**: 4 sample studies (2000-2001)
+  - Includes ultrasound, brain MRI, and PET scans
+
+**Search tips:**
+- Use date range 2015-01-01 to 2015-12-31 for hospital-1-query studies
+- Use patient ID "MS" to find the MRI studies
+- Leave fields empty for broader searches
+
 ## Troubleshooting
 
 ### PACS-AI server raises `System limit for number of file watchers reached`
