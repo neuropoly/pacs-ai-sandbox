@@ -42,20 +42,31 @@ fi
 echo "1. Loading DICOM test data from external repositories..."
 
 # Check if external pacs-ai-frontend has testdata
-FRONTEND_TESTDATA="$REPO_ROOT/external/pacs-ai-frontend/platform/app/public/testdata"
+# Testdata could be in several locations since it may be a submodule
+POSSIBLE_PATHS=(
+    "$REPO_ROOT/external/pacs-ai-frontend/platform/app/public/testdata"
+    "$REPO_ROOT/external/pacs-ai-frontend/testdata"
+    "$REPO_ROOT/external/pacs-ai-frontend/platform/testdata"
+    "$REPO_ROOT/external/pacs-ai-frontend/extensions/default/testdata"
+)
 
-if [ ! -d "$FRONTEND_TESTDATA" ]; then
-    echo "   ⚠ Frontend testdata directory not found at: $FRONTEND_TESTDATA"
-    echo "   Trying alternative path..."
-    
-    # Try alternative paths
-    FRONTEND_TESTDATA="$REPO_ROOT/external/pacs-ai-frontend/testdata"
-    
-    if [ ! -d "$FRONTEND_TESTDATA" ]; then
-        echo "   ⚠ No testdata found in pacs-ai-frontend"
-        echo "   Skipping testdata loading"
-        FRONTEND_TESTDATA=""
+FRONTEND_TESTDATA=""
+
+echo "   Searching for testdata in pacs-ai-frontend..."
+for path in "${POSSIBLE_PATHS[@]}"; do
+    echo "   Checking: ${path#$REPO_ROOT/}"
+    if [ -d "$path" ]; then
+        FRONTEND_TESTDATA="$path"
+        echo "   ✓ Found testdata at: ${path#$REPO_ROOT/}"
+        break
     fi
+done
+
+if [ -z "$FRONTEND_TESTDATA" ]; then
+    echo "   ⚠ No testdata directory found in standard locations"
+    echo "   ℹ Submodules may not be initialized. Run:"
+    echo "     git -C external/pacs-ai-frontend submodule update --init --recursive"
+    echo "   Skipping testdata loading"
 fi
 
 if [ -n "$FRONTEND_TESTDATA" ] && [ -d "$FRONTEND_TESTDATA" ]; then
@@ -65,39 +76,60 @@ if [ -n "$FRONTEND_TESTDATA" ] && [ -d "$FRONTEND_TESTDATA" ]; then
     mkdir -p "$REPO_ROOT/data/sample-studies/testdata-from-external"
     
     # Check what's in the testdata directory
+    # Look for DICOM files (.dcm)
     DICOM_FILES=$(find "$FRONTEND_TESTDATA" -name "*.dcm" 2>/dev/null | wc -l)
-    DICOMWEB_DIRS=$(find "$FRONTEND_TESTDATA" -type d -name "*dicomweb*" -o -name "*DICOMweb*" 2>/dev/null | wc -l)
     
-    echo "   ℹ Found $DICOM_FILES DICOM files"
-    echo "   ℹ Found $DICOMWEB_DIRS DICOMweb directories"
+    # Look for DICOMweb data (JSON metadata files, common in DICOMweb)
+    DICOMWEB_JSON=$(find "$FRONTEND_TESTDATA" -name "*.json" 2>/dev/null | wc -l)
     
-    if [ "$DICOM_FILES" -gt 0 ] || [ "$DICOMWEB_DIRS" -gt 0 ]; then
-        # Copy or symlink the testdata
-        echo "   → Copying testdata to local data directory..."
+    # Check if there are any subdirectories (testdata structure)
+    SUBDIRS=$(find "$FRONTEND_TESTDATA" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+    
+    # Count total files to see if directory has any content
+    TOTAL_FILES=$(find "$FRONTEND_TESTDATA" -type f 2>/dev/null | wc -l)
+    
+    echo "   ℹ Found $DICOM_FILES DICOM (.dcm) files"
+    echo "   ℹ Found $DICOMWEB_JSON JSON metadata files"
+    echo "   ℹ Found $SUBDIRS subdirectories"
+    echo "   ℹ Total files: $TOTAL_FILES"
+    
+    # If there's any content in testdata, process it
+    if [ "$TOTAL_FILES" -gt 0 ]; then
+        echo "   → Processing testdata content..."
         
-        # Copy DICOM files
+        # Copy DICOM files if found
         if [ "$DICOM_FILES" -gt 0 ]; then
+            echo "   → Copying DICOM files..."
             find "$FRONTEND_TESTDATA" -name "*.dcm" -exec cp {} "$REPO_ROOT/data/sample-studies/testdata-from-external/" \; 2>/dev/null || true
             echo "   ✓ Copied DICOM files to data/sample-studies/testdata-from-external/"
         fi
         
-        # Handle DICOMweb data - these should be accessible to the frontend
-        if [ "$DICOMWEB_DIRS" -gt 0 ]; then
-            # Create a symlink or copy DICOMweb data to the sandbox frontend
-            SANDBOX_FRONTEND="$SANDBOX_PATH/PACS-AI/platform/app/public"
+        # Copy ALL testdata to frontend (DICOMweb data, JSON, images, etc.)
+        SANDBOX_FRONTEND="$SANDBOX_PATH/PACS-AI/platform/app/public"
+        
+        if [ -d "$SANDBOX_FRONTEND" ]; then
+            # Ensure testdata directory exists in sandbox
+            mkdir -p "$SANDBOX_FRONTEND/testdata"
             
-            if [ -d "$SANDBOX_FRONTEND" ]; then
-                # Ensure testdata directory exists in sandbox
-                mkdir -p "$SANDBOX_FRONTEND/testdata"
-                
-                # Copy DICOMweb data
-                echo "   → Copying DICOMweb testdata to sandbox frontend..."
-                cp -R "$FRONTEND_TESTDATA"/. "$SANDBOX_FRONTEND/testdata/" 2>/dev/null || true
-                echo "   ✓ DICOMweb data available at sandbox/PACS-AI/platform/app/public/testdata/"
+            # Copy all testdata content (this includes DICOMweb studies, JSON files, images, etc.)
+            echo "   → Copying all testdata to sandbox frontend..."
+            cp -R "$FRONTEND_TESTDATA"/. "$SANDBOX_FRONTEND/testdata/" 2>/dev/null || true
+            
+            # Verify the copy
+            COPIED_FILES=$(find "$SANDBOX_FRONTEND/testdata" -type f 2>/dev/null | wc -l)
+            if [ "$COPIED_FILES" -gt 0 ]; then
+                echo "   ✓ Copied $COPIED_FILES files to sandbox/PACS-AI/platform/app/public/testdata/"
+                echo "   ✓ DICOMweb data will be served by frontend application"
             else
-                echo "   ⚠ Sandbox frontend public directory not found"
+                echo "   ⚠ No files were copied - check permissions or paths"
             fi
+        else
+            echo "   ⚠ Sandbox frontend public directory not found at: $SANDBOX_FRONTEND"
         fi
+    else
+        echo "   ℹ Testdata directory exists but appears to be empty"
+        echo "   ℹ This may be normal if submodules haven't been initialized"
+        echo "   ℹ Run: git -C external/pacs-ai-frontend submodule update --init --recursive"
     fi
 else
     echo "   ℹ No testdata directory found in external dependencies"
