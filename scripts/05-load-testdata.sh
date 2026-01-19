@@ -30,7 +30,7 @@ REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 # Load environment to check if we're in dev mode (in a subshell to avoid affecting parent)
 ENVIRONMENT=""
 if [ -f "$SANDBOX_PATH/.env.sandbox" ]; then
-    ENVIRONMENT=$(grep -E '^\s*ENVIRONMENT=' "$SANDBOX_PATH/.env.sandbox" | cut -d'=' -f2 | tr -d ' "' || echo "")
+    ENVIRONMENT=$(grep -E '^[[:space:]]*ENVIRONMENT=' "$SANDBOX_PATH/.env.sandbox" | cut -d'=' -f2- | tr -d ' "' || echo "")
 fi
 
 if [ "$ENVIRONMENT" != "dev" ]; then
