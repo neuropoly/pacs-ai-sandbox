@@ -1,12 +1,16 @@
 # PACS-AI sandbox
 
 This repository contains code and resources to test deployment of PACS-AI on various infrastructures in an organized sandbox. The goal is to
-refine the deployment process and provide general recipes for common infrastructures.
+unify the deployment process and provide general recipes for common infrastructures.
 
 ## Deployment
 
 1. Run `scripts/01-prerequisites.sh` to install necessary tools.
-2. Setup your Google Cloud, Firebase and Mailgun projects as described in the [PACS-AI deployment documentation](https://github.com/HeartWise-AI/pacs-ai-backend?tab=readme-ov-file#2-external-services-setup). Disregard any modifications to the PACS-AI code, this sandbox will handle it. When ask to copy **private keys**, place them in this repository's root, using the same names.
+2. Setup your Google Cloud, Firebase and Mailgun projects as described in the [PACS-AI deployment documentation](https://github.com/HeartWise-AI/pacs-ai-backend?tab=readme-ov-file#2-external-services-setup). If running in `development` mode, also register a **Mailchimp** account.
+
+   **Disregard any modifications to the PACS-AI code**, this sandbox will handle it.
+   
+   When asked to copy **private keys**, place them in this repository's root, using the same names.
 3. Fill the environment file (`.env`) with the required configuration
 
    From the Google Cloud Console, find the `prod` tenant created for PACS-AI and copy its ID (`prod-***`) to the
@@ -38,12 +42,14 @@ refine the deployment process and provide general recipes for common infrastruct
 
    Finally, create an API key on Mailgun and copy it to `MAILGUN_API_KEY`.
 
-4. If deploying PACS-AI in `dev` mode, you'll also need to create a Mailchimp account and fill the following parameters in the `.env` file:
+4. If deploying PACS-AI in `dev` mode, you'll also need to create Mailchimp and Cloudflare
+   accounts and fill the following parameters in the `.env` file:
 
    | Parameter               | Value                                 |
    |-------------------------|---------------------------------------|
    | MAILCHIMP_API_KEY       | Your Mailchimp API key                |
    | MAILCHIMP_LIST_ID       | The ID of the audience/list to subscribe users to |
+   | CLOUDFLARE_SECRET_KEY   | Your Cloudflare API token             |
 
 5. Create the sandbox:
    ```bash
