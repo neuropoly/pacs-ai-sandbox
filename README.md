@@ -122,14 +122,32 @@ This will install:
 
 ### Sample DICOM Data
 
-In **development mode**, the sandbox automatically provides sample DICOM studies for testing:
+In **development mode**, the sandbox provides a zero-overhead mechanism to access sample DICOM studies for testing:
 
-- Sample studies are mounted into the Orthanc server using zero-overhead Nginx-based access
-- No data copying or duplication - direct filesystem access
-- Automatically loaded when the sandbox starts
-- Accessible through the PACS-AI UI for viewing and AI analysis
+- **Zero-overhead mounting**: Sample studies are directly mounted into the Orthanc container via Docker volumes
+- **No data copying**: Direct filesystem access without duplication
+- **Automatic configuration**: Volume mount is configured during sandbox patching
+- **Easy access**: Files are available at `/data` inside the Orthanc container
 
-The sample data includes various medical imaging modalities for comprehensive testing.
+#### Adding Sample Data
+
+1. Place your DICOM files (`.dcm`) in the `data/sample-studies/` directory:
+   ```bash
+   # Organize by study
+   data/sample-studies/study-001/*.dcm
+   data/sample-studies/study-002/*.dcm
+   ```
+
+2. Run the data loader helper script (optional, for verification):
+   ```bash
+   bash scripts/05-load-sample-data.sh sandbox
+   ```
+
+3. Access the data through Orthanc's web interface or API
+
+**Note**: DICOM files are excluded from git by default to avoid repository bloat. You can download sample DICOM data from:
+- [RuboMedical DICOM Files](https://www.rubomedical.com/dicom_files/)
+- [The Cancer Imaging Archive](https://www.cancerimagingarchive.net/)
 
 ## Accessing Services
 

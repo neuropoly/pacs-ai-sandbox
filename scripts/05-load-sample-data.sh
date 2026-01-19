@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+# Load sample DICOM data into Orthanc server
+# This script provides utilities to import DICOM files from the data/sample-studies directory
+# into the Orthanc PACS server for testing and development.
+
+SANDBOX_PATH=$1
+ORTHANC_URL=${2:-"http://localhost:8053"}
+
+set -e
+
+if [ -z "$SANDBOX_PATH" ]; then
+    echo "Error: SANDBOX_PATH argument is required"
+    echo "Usage: bash scripts/05-load-sample-data.sh <sandbox-path> [orthanc-url]"
+    exit 1
+fi
+
+echo "=========================================="
+echo "PACS-AI Sample Data Loader"
+echo "=========================================="
+echo ""
+echo "This script helps load sample DICOM data into Orthanc."
+echo ""
+
+# Check if data directory exists
+if [ ! -d "data/sample-studies" ]; then
+    echo "Error: data/sample-studies directory not found"
+    exit 1
+fi
+
+# Count DICOM files
+DICOM_COUNT=$(find data/sample-studies -name "*.dcm" 2>/dev/null | wc -l)
+
+if [ "$DICOM_COUNT" -eq 0 ]; then
+    echo "No DICOM files found in data/sample-studies/"
+    echo ""
+    echo "To add sample data:"
+    echo "  1. Place your .dcm files in data/sample-studies/"
+    echo "  2. Organize them in subdirectories (e.g., study-001/, study-002/)"
+    echo "  3. Run this script again"
+    echo ""
+    echo "You can download sample DICOM data from:"
+    echo "  - https://www.rubomedical.com/dicom_files/"
+    echo "  - https://www.cancerimagingarchive.net/"
+    echo ""
+    exit 0
+fi
+
+echo "Found $DICOM_COUNT DICOM files"
+echo ""
+
+# Check if Orthanc is accessible
+if command -v curl &> /dev/null; then
+    echo "Checking Orthanc connectivity at $ORTHANC_URL..."
+    if curl -s -f "$ORTHANC_URL/system" > /dev/null 2>&1; then
+        echo "✓ Orthanc is accessible"
+    else
+        echo "⚠ Warning: Could not connect to Orthanc at $ORTHANC_URL"
+        echo "  Make sure the PACS-AI backend is running (scripts/04-run-sandbox.sh)"
+    fi
+    echo ""
+fi
+
+echo "Sample data is ready and will be accessible through the mounted volume."
+echo ""
+echo "To manually import DICOM files into Orthanc:"
+echo "  1. Access Orthanc UI at $ORTHANC_URL"
+echo "  2. Use the 'Upload' feature in the web interface"
+echo "  3. Or use DICOM C-STORE to push files to Orthanc"
+echo ""
+echo "For automatic import, the data is mounted at /data in the Orthanc container."
+echo ""

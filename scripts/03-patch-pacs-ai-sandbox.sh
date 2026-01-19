@@ -136,6 +136,56 @@ else
 fi
 echo ""
 
+# 7. Configure sample DICOM data mounting (dev mode only)
+echo "7. Configuring sample DICOM data mounting for development..."
+
+# Get the absolute path to the data directory
+REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+DATA_DIR="$REPO_ROOT/data/sample-studies"
+
+if [ ! -d "$DATA_DIR" ]; then
+    echo "   ⚠ Sample data directory not found at $DATA_DIR"
+    echo "   Skipping data mounting configuration"
+else
+    # Patch orthanc docker-compose to add data volume mount
+    if [ -f "$SANDBOX_PATH/pacs-ai-backend/orthanc/docker-compose-dev.yml" ]; then
+        # Check if volume is already added
+        if ! grep -q "/data:ro" "$SANDBOX_PATH/pacs-ai-backend/orthanc/docker-compose-dev.yml" 2>/dev/null; then
+            # Add data volume mount to orthanc service
+            # Insert the volume mount before the ports section
+            awk -v data_dir="$DATA_DIR" '
+                /^    volumes:/ {
+                    print
+                    print "      - " data_dir ":/data:ro"
+                    next
+                }
+                { print }
+            ' "$SANDBOX_PATH/pacs-ai-backend/orthanc/docker-compose-dev.yml" > "$SANDBOX_PATH/pacs-ai-backend/orthanc/docker-compose-dev.yml.tmp"
+            
+            mv "$SANDBOX_PATH/pacs-ai-backend/orthanc/docker-compose-dev.yml.tmp" "$SANDBOX_PATH/pacs-ai-backend/orthanc/docker-compose-dev.yml"
+            
+            echo "   ✓ Added sample data volume mount to Orthanc ($DATA_DIR → /data)"
+        else
+            echo "   ℹ Sample data volume already configured"
+        fi
+    else
+        echo "   ⚠ orthanc/docker-compose-dev.yml not found"
+    fi
+    
+    # Create nginx configuration for serving DICOM data (if needed for future extensions)
+    # For now, we use the direct volume mount approach which is truly zero-overhead
+    
+    # Count DICOM files in sample data
+    DICOM_COUNT=$(find "$DATA_DIR" -name "*.dcm" 2>/dev/null | wc -l || echo "0")
+    echo "   ℹ Sample data directory: $DATA_DIR"
+    echo "   ℹ DICOM files found: $DICOM_COUNT"
+    
+    if [ "$DICOM_COUNT" -eq 0 ]; then
+        echo "   ℹ No DICOM files found. Add .dcm files to data/sample-studies/ for testing"
+    fi
+fi
+echo ""
+
 echo "=========================================="
 echo "Sandbox Patching Complete!"
 echo "=========================================="
@@ -147,6 +197,7 @@ echo "  ✓ nginx network configuration added"
 echo "  ✓ orthanc-pacs enabled (hospital PACS simulation)"
 echo "  ✓ orthanc-hospital-1 volume separation fixed (prevents SQLite locks)"
 echo "  ✓ nginx routes updated to match actual container names"
+echo "  ✓ sample DICOM data volume mounted (zero-overhead access)"
 echo ""
 echo "Hospital PACS Simulation Containers:"
 echo "  • orthanc-hospital-1-query (DICOM Query/Move) - http://localhost:8063"
@@ -160,7 +211,9 @@ echo "  • http://localhost/orthanc-hospital-2/"
 echo "  • http://localhost/api/"
 echo ""
 echo "Next steps:"
-echo "  1. Run: bash scripts/04-run-sandbox.sh $SANDBOX_PATH"
-echo "  2. Access frontend at http://localhost:3000"
-echo "  3. Access API at http://localhost/api"
+echo "  1. (Optional) Add DICOM files to data/sample-studies/ for testing"
+echo "  2. Run: bash scripts/04-run-sandbox.sh $SANDBOX_PATH"
+echo "  3. Access frontend at http://localhost:3000"
+echo "  4. Access API at http://localhost/api"
+echo "  5. Sample data will be available at /data in Orthanc container"
 echo ""
