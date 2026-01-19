@@ -26,7 +26,7 @@ if [ ! -d "$DATA_DIR" ]; then
     exit 1
 fi
 
-# Count DICOM files
+# Check if any DICOM files exist and count them
 DICOM_COUNT=$(find "$DATA_DIR" -name "*.dcm" 2>/dev/null | wc -l)
 
 if [ "$DICOM_COUNT" -eq 0 ]; then

@@ -155,7 +155,7 @@ else
             # Use awk to find the orthanc service volumes section specifically
             awk -v data_dir="$DATA_DIR" '
                 /^  orthanc:/ { in_orthanc=1 }
-                /^  [a-z]/ && !/^  orthanc:/ { in_orthanc=0 }
+                /^  [a-zA-Z0-9_-]+:$/ && !/^  orthanc:/ { in_orthanc=0 }
                 in_orthanc && /^    volumes:/ {
                     print
                     print "      - " data_dir ":/data:ro"
@@ -175,11 +175,7 @@ else
     fi
     
     # Count DICOM files in sample data
-    if [ -d "$DATA_DIR" ]; then
-        DICOM_COUNT=$(find "$DATA_DIR" -name "*.dcm" 2>/dev/null | wc -l)
-    else
-        DICOM_COUNT=0
-    fi
+    DICOM_COUNT=$(find "$DATA_DIR" -name "*.dcm" 2>/dev/null | wc -l)
     echo "   ℹ Sample data directory: $DATA_DIR"
     echo "   ℹ DICOM files found: $DICOM_COUNT"
     
