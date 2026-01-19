@@ -20,7 +20,11 @@ if [ $ENVIRONMENT = "dev" ]; then
     # Optionally reload test data if requested
     if [ "$RELOAD_TESTDATA" = "true" ]; then
         echo "Reloading test data from external repositories..."
-        bash scripts/05-load-testdata.sh "$SANDBOX_PATH"
+        if bash scripts/05-load-testdata.sh "$SANDBOX_PATH"; then
+            echo "Test data reloaded successfully"
+        else
+            echo "⚠ Warning: Test data reload failed or was skipped"
+        fi
     fi
 
     CWD=$(pwd)

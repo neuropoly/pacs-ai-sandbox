@@ -197,7 +197,13 @@ fi
 # Load test data from external repositories (dev mode only)
 if [ $ENVIRONMENT = "dev" ]; then
     echo "Loading test data from external repositories..."
-    bash scripts/05-load-testdata.sh "$SANDBOX_PATH"
+    if bash scripts/05-load-testdata.sh "$SANDBOX_PATH"; then
+        echo "Test data loading completed successfully"
+    else
+        echo "⚠ Warning: Test data loading failed or was skipped"
+        echo "  This is not critical - you can manually load data later with:"
+        echo "  bash scripts/05-load-testdata.sh $SANDBOX_PATH"
+    fi
 fi
 
 echo "Sandbox creation completed successfully."
