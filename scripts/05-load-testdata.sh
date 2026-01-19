@@ -188,18 +188,25 @@ echo "  → $SANDBOX_PATH/PACS-AI/platform/app/public/testdata/"
 echo ""
 
 # Upload DICOM files to hospital PACS containers if they're running
-if [ "$TOTAL_DICOM" -gt 0 ]; then
-    echo "Attempting to upload DICOM files to hospital PACS containers..."
-    echo ""
+echo "Checking hospital PACS containers status..."
+echo ""
+
+# Function to upload DICOM files to an Orthanc instance
+upload_to_orthanc() {
+    local orthanc_url=$1
+    local orthanc_name=$2
+    local upload_count=0
     
-    # Function to upload DICOM files to an Orthanc instance
-    upload_to_orthanc() {
-        local orthanc_url=$1
-        local orthanc_name=$2
-        local upload_count=0
+    echo "  → Checking $orthanc_name ($orthanc_url)..."
+    if curl -s -f "$orthanc_url/system" > /dev/null 2>&1; then
+        echo "    ✓ Container is accessible"
         
-        if curl -s -f "$orthanc_url/system" > /dev/null 2>&1; then
-            echo "  → Uploading to $orthanc_name ($orthanc_url)..."
+        # Check current study count
+        CURRENT_STUDIES=$(curl -s "$orthanc_url/studies" 2>/dev/null | grep -o '\[' | wc -l || echo "0")
+        echo "    ℹ Current studies in container: $CURRENT_STUDIES"
+        
+        if [ "$TOTAL_DICOM" -gt 0 ]; then
+            echo "    → Uploading DICOM files..."
             for dcm_file in "$REPO_ROOT/data/sample-studies/testdata-from-external"/*.dcm; do
                 if [ -f "$dcm_file" ]; then
                     if curl -s -X POST "$orthanc_url/instances" \
@@ -210,30 +217,54 @@ if [ "$TOTAL_DICOM" -gt 0 ]; then
                 fi
             done
             if [ "$upload_count" -gt 0 ]; then
-                echo "    ✓ Uploaded $upload_count DICOM files to $orthanc_name"
+                echo "    ✓ Uploaded $upload_count DICOM files"
                 return 0
+            else
+                echo "    ⚠ No files were uploaded"
+            fi
+        else
+            echo "    ℹ No DICOM files available to upload"
+            if [ "$CURRENT_STUDIES" -eq 0 ]; then
+                echo "    ⚠ WARNING: Container has no studies!"
+                echo "       The modality query endpoint may return errors."
+                echo "       Add .dcm files to testdata or use DICOMweb viewer directly."
             fi
         fi
-        return 1
-    }
-    
-    # Check if we can reach the hospital PACS containers
-    # These are typically at localhost:8063, 8073, 8083 when running
-    
-    UPLOADED=false
-    
-    # Try uploading to hospital PACS containers
-    if command -v curl &> /dev/null; then
-        upload_to_orthanc "http://localhost:8073" "orthanc-hospital-1-store" && UPLOADED=true
-        upload_to_orthanc "http://localhost:8083" "orthanc-hospital-2" && UPLOADED=true
+    else
+        echo "    ✗ Container not accessible"
     fi
+    return 1
+}
+
+# Check if we can reach the hospital PACS containers
+UPLOADED=false
+
+# Try uploading to hospital PACS containers
+if command -v curl &> /dev/null; then
+    upload_to_orthanc "http://localhost:8073" "orthanc-hospital-1-store" && UPLOADED=true
+    upload_to_orthanc "http://localhost:8083" "orthanc-hospital-2" && UPLOADED=true
     
-    if [ "$UPLOADED" = false ]; then
+    echo ""
+    if [ "$UPLOADED" = true ]; then
+        echo "✓ Successfully uploaded data to hospital PACS containers"
+    elif [ "$TOTAL_DICOM" -eq 0 ]; then
+        echo "⚠ WARNING: No DICOM files found in testdata"
+        echo ""
+        echo "DICOMweb data has been copied to the frontend, but hospital PACS"
+        echo "containers have no studies. This may cause errors when querying modalities."
+        echo ""
+        echo "Solutions:"
+        echo "  1. Add .dcm files to the testdata directory"
+        echo "  2. Use the DICOMweb viewer directly (frontend loads data from testdata)"
+        echo "  3. Upload DICOM files manually to http://localhost:8073 or http://localhost:8083"
+    else
         echo "  ℹ Hospital PACS containers not yet running or not accessible"
         echo "  → Start the sandbox with scripts/04-run-sandbox.sh"
         echo "  → Then run: RELOAD_TESTDATA=true bash scripts/04-run-sandbox.sh $SANDBOX_PATH"
         echo "     to upload the test data to running containers"
     fi
-    echo ""
+else
+    echo "⚠ curl not available - cannot check or upload to hospital PACS containers"
 fi
+echo ""
 
