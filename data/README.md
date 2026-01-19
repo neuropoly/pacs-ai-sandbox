@@ -15,11 +15,11 @@ data/
 
 ## Usage
 
-In **development mode**, these studies are automatically mounted and made accessible to the Orthanc server through Nginx. The mounting process:
+In **development mode**, these studies are automatically mounted and made accessible to the Orthanc server through Docker volumes. The mounting process:
 
 1. Uses zero-overhead filesystem access (no data copying)
-2. Serves DICOM files through Nginx static file serving
-3. Allows Orthanc to import studies on demand
+2. Direct Docker volume mount from host to container
+3. Allows Orthanc to access studies at `/data` inside the container
 
 ## Adding Your Own Studies
 

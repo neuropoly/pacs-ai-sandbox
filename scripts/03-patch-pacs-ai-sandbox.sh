@@ -172,9 +172,6 @@ else
         echo "   ⚠ orthanc/docker-compose-dev.yml not found"
     fi
     
-    # Create nginx configuration for serving DICOM data (if needed for future extensions)
-    # For now, we use the direct volume mount approach which is truly zero-overhead
-    
     # Count DICOM files in sample data
     DICOM_COUNT=$(find "$DATA_DIR" -name "*.dcm" 2>/dev/null | wc -l || echo "0")
     echo "   ℹ Sample data directory: $DATA_DIR"

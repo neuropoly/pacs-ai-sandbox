@@ -9,6 +9,11 @@ ORTHANC_URL=${2:-"http://localhost:8053"}
 
 set -e
 
+# Get absolute paths
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+DATA_DIR="$REPO_ROOT/data/sample-studies"
+
 if [ -z "$SANDBOX_PATH" ]; then
     echo "Error: SANDBOX_PATH argument is required"
     echo "Usage: bash scripts/05-load-sample-data.sh <sandbox-path> [orthanc-url]"
@@ -23,16 +28,16 @@ echo "This script helps load sample DICOM data into Orthanc."
 echo ""
 
 # Check if data directory exists
-if [ ! -d "data/sample-studies" ]; then
-    echo "Error: data/sample-studies directory not found"
+if [ ! -d "$DATA_DIR" ]; then
+    echo "Error: $DATA_DIR directory not found"
     exit 1
 fi
 
 # Count DICOM files
-DICOM_COUNT=$(find data/sample-studies -name "*.dcm" 2>/dev/null | wc -l)
+DICOM_COUNT=$(find "$DATA_DIR" -name "*.dcm" 2>/dev/null | wc -l)
 
 if [ "$DICOM_COUNT" -eq 0 ]; then
-    echo "No DICOM files found in data/sample-studies/"
+    echo "No DICOM files found in $DATA_DIR"
     echo ""
     echo "To add sample data:"
     echo "  1. Place your .dcm files in data/sample-studies/"
