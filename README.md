@@ -1,12 +1,64 @@
-# PACS-AI sandbox
+# PACS-AI Sandbox
 
-This repository contains code and resources to test deployment of PACS-AI on various infrastructures in an organized sandbox. The goal is to
-refine the deployment process and provide general recipes for common infrastructures.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Environment](https://img.shields.io/badge/environment-dev%20%7C%20prod-green.svg)
+![Docker](https://img.shields.io/badge/docker-compose%20v2.24.7%2B-blue.svg)
+![Status](https://img.shields.io/badge/status-active-success.svg)
+
+This repository contains code and resources to test deployment of PACS-AI on various infrastructures in an organized sandbox. The goal is to unify the deployment process and provide general recipes for common infrastructures.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Deployment](#deployment)
+  - [External Services Setup](#external-services-setup)
+  - [Environment Configuration](#environment-configuration)
+  - [Sandbox Creation](#sandbox-creation)
+  - [Launch Services](#launch-services)
+- [Development Features](#development-features)
+  - [Sample DICOM Data](#sample-dicom-data)
+- [Accessing Services](#accessing-services)
+- [Troubleshooting](#troubleshooting)
+
+## Overview
+
+PACS-AI Sandbox provides a unified deployment environment for the PACS-AI platform, supporting both development and production modes. The sandbox includes:
+
+- **PACS-AI Frontend**: Web application for medical image viewing and AI analysis
+- **PACS-AI Backend**: RESTful API server with authentication and AI processing
+- **Orthanc DICOM Server**: Medical image storage and DICOM networking
+- **Hospital PACS Simulation** (dev mode): Multiple Orthanc instances simulating real-world hospital PACS systems
+- **Sample DICOM Data** (dev mode): Pre-loaded medical imaging studies for testing
+
+## Prerequisites
+
+Before starting, ensure you have the required tools installed by running:
+
+```bash
+bash scripts/01-prerequisites.sh
+```
+
+This will install:
+- Docker + Docker Compose (>= v2.24.7)
+- make
 
 ## Deployment
 
-1. Run `scripts/01-prerequisites.sh` to install necessary tools.
-2. Setup your Google Cloud, Firebase and Mailgun projects as described in the [PACS-AI deployment documentation](https://github.com/HeartWise-AI/pacs-ai-backend?tab=readme-ov-file#2-external-services-setup). Disregard any modifications to the PACS-AI code, this sandbox will handle it. When ask to copy **private keys**, place them in this repository's root, using the same names.
+### External Services Setup
+
+1. Setup your Google Cloud, Firebase and Mailgun projects as described in the [PACS-AI deployment documentation](https://github.com/HeartWise-AI/pacs-ai-backend?tab=readme-ov-file#2-external-services-setup). 
+
+   **Important**: Disregard any modifications to the PACS-AI code mentioned in the documentation - this sandbox handles all necessary patches automatically.
+   
+   When asked to copy **private keys**, place them in this repository's root, using the same names.
+
+2. If deploying in **development mode**, also register:
+   - **Mailchimp** account (for email subscriptions)
+   - **Cloudflare** account (for bot protection)
+
+### Environment Configuration
+
 3. Fill the environment file (`.env`) with the required configuration
 
    From the Google Cloud Console, find the `prod` tenant created for PACS-AI and copy its ID (`prod-***`) to the
@@ -38,108 +90,86 @@ refine the deployment process and provide general recipes for common infrastruct
 
    Finally, create an API key on Mailgun and copy it to `MAILGUN_API_KEY`.
 
-4. If deploying PACS-AI in `dev` mode, you'll also need to create a Mailchimp account and fill the following parameters in the `.env` file:
+4. If deploying PACS-AI in `dev` mode, you'll also need to create Mailchimp and Cloudflare
+   accounts and fill the following parameters in the `.env` file:
 
    | Parameter               | Value                                 |
    |-------------------------|---------------------------------------|
    | MAILCHIMP_API_KEY       | Your Mailchimp API key                |
    | MAILCHIMP_LIST_ID       | The ID of the audience/list to subscribe users to |
+   | CLOUDFLARE_SECRET_KEY   | Your Cloudflare API token             |
+
+### Sandbox Creation
 
 5. Create the sandbox:
    ```bash
    bash scripts/02-create-sandbox.sh sandbox
    ```
 
-6. Patch the sandbox (fixes Docker networking and permissions):
+6. Patch the sandbox (fixes Docker networking, permissions, and configures development features):
    ```bash
    bash scripts/03-patch-pacs-ai-sandbox.sh sandbox
    ```
+
+### Launch Services
 
 7. Launch the PACS-AI services:
    ```bash
    bash scripts/04-run-sandbox.sh sandbox
    ```
 
+## Development Features
+
+### Sample DICOM Data
+
+In **development mode**, the sandbox provides ways to access sample medical imaging data for testing:
+
+#### 1. Test Data from External Repositories
+
+The sandbox **automatically loads test data** from the external PACS-AI repositories during sandbox creation:
+
+- **DICOM test files**: Loaded from testdata directories in external repositories and placed in `data/sample-studies/testdata-from-external/`
+
+#### 2. Custom Local DICOM Data
+
+You can also add your own DICOM files for testing:
+
+- **Zero-overhead mounting**: Sample studies are directly mounted into the Orthanc container via Docker volumes
+- **No data copying**: Direct filesystem access without duplication for local files
+- **Automatic configuration**: Volume mount is configured during sandbox patching
+- **Easy access**: Files are available at `/data` inside the Orthanc container
+
+**Adding Custom Data:**
+
+Place your DICOM files (`.dcm`) in the `data/sample-studies/` directory:
+
+```bash
+# Organize by study
+data/sample-studies/study-001/*.dcm
+data/sample-studies/study-002/*.dcm
+```
+
+Once your data is placed accordingly, run the following script :
+
+```bash
+bash scripts/05-load-sample-studies.sh sandbox
+```
+
+## Accessing Services in DEV mode
+
 8. Access the application:
    - Frontend: http://localhost:3000
    - API: http://localhost/api
    - API Documentation: http://localhost/api/docs
+   - Orthanc (Main PACS): http://localhost:8053
+   - Orthanc Hospital 1 (Query): http://localhost:8063
+   - Orthanc Hospital 1 (Store): http://localhost:8073
+   - Orthanc Hospital 2: http://localhost:8083
 
 9. Verify deployment health:
    ```bash
    bash scripts/99-network-test.sh
    ```
-
-## Post-Deployment Configuration
-
-### Configure Hospital DICOM Modalities
-
-After the first deployment, the hospital PACS simulation modalities are registered in Orthanc but need to be configured through the admin UI to enable DICOM query/retrieve/store operations.
-
-**Step-by-step guide:**
-
-1. **Create a tenant owner account** (first-time setup only):
-   ```bash
-   # Get your Firebase auth token from the browser
-   # Then create an owner user with the superuser API:
-   curl -X POST http://localhost/api/v1/user/owner/add \
-     -H "Content-Type: application/json" \
-     -H "X-FB-SUDO-KEY: 12345" \
-     -d '{
-       "tenantId": "prod-XXXXX",
-       "email": "admin@example.com",
-       "password": "YourSecurePassword",
-       "lastName": "Admin",
-       "firstName": "System"
-     }'
-   ```
-   Replace `prod-XXXXX` with your tenant ID from the `.env` file.
-
-2. **Log into the PACS-AI frontend** at http://localhost:3000 with your owner account.
-
-3. **Navigate to the Admin section** (accessible from the top-right user menu).
-
-4. **Go to the Modalities tab** where you'll see three hospital modalities:
-   - `hospital-1-query` (HOSPITAL_1_QUERY)
-   - `hospital-1-store` (HOSPITAL_1_STORE)
-   - `hospital-2` (HOSPITAL_2)
-
-5. **For each modality, click the edit button** (pencil icon) and:
-   - ✅ Enable **C-FIND** (DICOM Query)
-   - ✅ Enable **C-MOVE** (DICOM Retrieve)
-   - ✅ Enable **C-STORE** (DICOM Store)
-   - Click **Save**
-
-6. **Verify the configuration**:
-   - All three checkboxes should now show as enabled in the modalities list
-   - The frontend can now query studies from hospital PACS systems
-
-**What this does:**
-- Updates the DICOM permissions in Orthanc (AllowFind, AllowMove, AllowStore)
-- Stores the enabled features in Firestore database
-- Enables the frontend to perform DICOM query/retrieve operations
-
-**Note:** The modalities are automatically registered in Orthanc during the patch step (step 6), but the DICOM operation flags default to disabled until configured through the UI.
-
-### Upload Sample DICOM Data (Optional)
-
-To populate the hospital PACS simulators with sample studies for testing:
-
-```bash
-bash scripts/06-upload-sample-dicom-data.sh
-```
-
-This uploads:
-- **hospital-1-query**: 3 MRI studies from 2015 (134 DICOM instances)
-  - Study dates: 2015-04-13, 2015-05-26
-  - Patient: MS (head scans)
-- **hospital-2**: 4 sample studies (2000-2001)
-  - Includes ultrasound, brain MRI, and PET scans
-
-**Search tips:**
-- Use date range 2015-01-01 to 2015-12-31 for hospital-1-query studies
-- Use patient ID "MS" to find the MRI studies
-- Leave fields empty for broader searches
 
 ## Troubleshooting
 
