@@ -42,6 +42,7 @@ bash scripts/01-prerequisites.sh
 This will install:
 - Docker + Docker Compose (>= v2.24.7)
 - make
+- a domain able to send e-mails
 
 ## Deployment
 
@@ -57,9 +58,11 @@ This will install:
    - **Mailchimp** account (for email subscriptions)
    - **Cloudflare** account (for bot protection)
 
+3. In the **Firebase Console**, activate the *analytics dashboard*. This will enable the `measurementID` field needed for the frontend configuration.
+
 ### Environment Configuration
 
-3. Fill the environment file (`.env`) with the required configuration
+4. Fill the environment file (`.env`) with the required configuration
 
    From the Google Cloud Console, find the `prod` tenant created for PACS-AI and copy its ID (`prod-***`) to the
    `GCP_TENANT_ID` parameter in the `.env` file.
@@ -73,7 +76,8 @@ This will install:
      projectId: "***",
      storageBucket: "***",
      messagingSenderId: "***",
-     appId: "***"
+     appId: "***",
+     measurementId: "***"
    };
    ```
 
@@ -87,10 +91,13 @@ This will install:
    | FIREBASE_STORAGE_BUCKET      | storageBucket             |
    | FIREBASE_MESSAGING_SENDER_ID | messagingSenderId         |
    | FIREBASE_APP_ID              | appId                     |
+   | FIREBASE_MEASUREMENT_ID      | measurementId             |
 
-   Finally, create an API key on Mailgun and copy it to `MAILGUN_API_KEY`.
+   Set `FIREBASE_SUPERUSER_KEY` to a strong secret key. It will be used to create the first admin user in the PACS-AI platform.
 
-4. If deploying PACS-AI in `dev` mode, you'll also need to create Mailchimp and Cloudflare
+   Finally, create an API key on Mailgun and copy it to `MAILGUN_API_KEY`. Set `MAILGUN_DOMAIN` to the domain of your e-mail sending service and `MAILGUN_SENDER_EMAIL` to the e-mail address you will use to send e-mails from PACS-AI.
+
+5. If deploying PACS-AI in `dev` mode, you'll also need to create Mailchimp and Cloudflare
    accounts and fill the following parameters in the `.env` file:
 
    | Parameter               | Value                                 |
@@ -98,6 +105,10 @@ This will install:
    | MAILCHIMP_API_KEY       | Your Mailchimp API key                |
    | MAILCHIMP_LIST_ID       | The ID of the audience/list to subscribe users to |
    | CLOUDFLARE_SECRET_KEY   | Your Cloudflare API token             |
+
+> [!WARNING]
+> From here, if deploying in **production mode**,
+> **follow the instructions in [PRODUCTION.md](./PRODUCTION.md)**.
 
 ### Sandbox Creation
 
