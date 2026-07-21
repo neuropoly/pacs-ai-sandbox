@@ -69,8 +69,8 @@ EOF
 echo "   ✓ NGINX network configuration added"
 echo ""
 
-# 4. Enable orthanc-pacs in docker-compose
-echo "4. Enabling orthanc-pacs (hospital PACS simulation containers)..."
+# 4.1 Enable orthanc-pacs in docker-compose
+echo "4.1 Enabling orthanc-pacs (hospital PACS simulation containers)..."
 if grep -q "^#.*orthanc-pacs" "$SANDBOX_PATH/pacs-ai-backend/docker-compose-dev.yml" 2>/dev/null; then
     sed -i 's/^#.*orthanc-pacs/  - orthanc-pacs\/docker-compose.yml/' "$SANDBOX_PATH/pacs-ai-backend/docker-compose-dev.yml"
     echo "   ✓ orthanc-pacs enabled"
@@ -136,65 +136,6 @@ else
 fi
 echo ""
 
-# 7. Register hospital DICOM modalities in main Orthanc
-echo "7. Registering hospital DICOM modalities in main Orthanc..."
-echo "   Note: This step requires orthanc container to be running"
-echo "   Checking if orthanc container is running..."
-
-# Only register modalities if orthanc is running
-if docker ps --format '{{.Names}}' | grep -q '^orthanc$'; then
-    echo "   Orthanc container is running, waiting for it to be ready..."
-    
-    # Wait for orthanc to be ready (max 30 seconds)
-    max_attempts=30
-    attempt=1
-    orthanc_ready=false
-    
-    while [ $attempt -le $max_attempts ]; do
-        if curl -s http://localhost:8053/system 2>&1 | grep -q "Version"; then
-            echo "   ✓ Orthanc is ready"
-            orthanc_ready=true
-            break
-        fi
-        sleep 1
-        attempt=$((attempt + 1))
-    done
-    
-    if [ "$orthanc_ready" = true ]; then
-        echo "   Registering hospital-1-query modality..."
-        curl -s -X PUT -H "Content-Type: application/json" \
-            -d '["HOSPITAL_1_QUERY", "orthanc-hospital-1-query", 5000]' \
-            http://localhost:8053/modalities/hospital-1-query > /dev/null
-        
-        echo "   Registering hospital-1-store modality..."
-        curl -s -X PUT -H "Content-Type: application/json" \
-            -d '["HOSPITAL_1_STORE", "orthanc-hospital-1-store", 4000]' \
-            http://localhost:8053/modalities/hospital-1-store > /dev/null
-        
-        echo "   Registering hospital-2 modality..."
-        curl -s -X PUT -H "Content-Type: application/json" \
-            -d '["HOSPITAL_2", "orthanc-hospital-2", 4242]' \
-            http://localhost:8053/modalities/hospital-2 > /dev/null
-        
-        # Verify registration
-        modalities_json=$(curl -s http://localhost:8053/modalities)
-        if echo "$modalities_json" | grep -q "hospital-1-query" && \
-           echo "$modalities_json" | grep -q "hospital-1-store" && \
-           echo "$modalities_json" | grep -q "hospital-2"; then
-            echo "   ✓ All hospital DICOM modalities registered successfully"
-        else
-            echo "   ⚠ Warning: Some modalities may not have been registered"
-        fi
-    else
-        echo "   ⚠ Orthanc did not become ready in time"
-        echo "   ℹ Run this script again after containers are fully started"
-    fi
-else
-    echo "   ⚠ Orthanc container is not running"
-    echo "   ℹ Run this script again after running: bash scripts/04-run-sandbox.sh $SANDBOX_PATH"
-fi
-echo ""
-
 echo "=========================================="
 echo "Sandbox Patching Complete!"
 echo "=========================================="
@@ -214,11 +155,6 @@ echo "  • orthanc-hospital-1-store (DICOM Store)      - http://localhost:8073"
 echo "  • orthanc-hospital-2 (Combined)               - http://localhost:8083"
 echo "  • Main PACS-AI Orthanc                        - http://localhost:8053"
 echo ""
-echo "Registered DICOM Modalities:"
-echo "  • hospital-1-query (HOSPITAL_1_QUERY @ orthanc-hospital-1-query:5000)"
-echo "  • hospital-1-store (HOSPITAL_1_STORE @ orthanc-hospital-1-store:4000)"
-echo "  • hospital-2       (HOSPITAL_2 @ orthanc-hospital-2:4242)"
-echo ""
 echo "Nginx Routes:"
 echo "  • http://localhost/orthanc-hospital-1-query/"
 echo "  • http://localhost/orthanc-hospital-2/"
@@ -228,9 +164,5 @@ echo "Next steps:"
 echo "  1. Run: bash scripts/04-run-sandbox.sh $SANDBOX_PATH"
 echo "  2. Access frontend at http://localhost:3000"
 echo "  3. Create tenant owner account (see README for curl command)"
-echo "  4. Configure modalities via Admin UI (enable C-FIND/C-MOVE/C-STORE)"
-echo "     See 'Post-Deployment Configuration' section in README.md"
-echo ""
-echo "Note: Hospital DICOM modalities are registered in Orthanc but C-FIND/C-MOVE/C-STORE"
-echo "      flags default to disabled. Enable them via Admin UI after first login."
+echo "  4. Register modalities (hospital-1-query, hospital-1-store, hospital-2) and upload data"
 echo ""

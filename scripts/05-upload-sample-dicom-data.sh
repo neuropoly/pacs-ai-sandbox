@@ -12,15 +12,36 @@ set -e
 WORKSPACE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DATA_DIR="$WORKSPACE_ROOT/data/sample-studies"
 
+# Parse command line arguments
+STUDY_PATH="${1:-study-001}"  # Default to study-001 if no argument provided
+
+# If relative path, prepend DATA_DIR; if absolute, use as-is
+if [[ "$STUDY_PATH" != /* ]]; then
+    FULL_STUDY_PATH="$DATA_DIR/$STUDY_PATH"
+else
+    FULL_STUDY_PATH="$STUDY_PATH"
+fi
+
 echo "=========================================="
 echo "Uploading Sample DICOM Data"
 echo "=========================================="
 echo ""
+echo "Study directory: $FULL_STUDY_PATH"
+echo ""
 
 # Check if data directory exists
-if [ ! -d "$DATA_DIR/study-001" ]; then
-    echo "❌ Error: Sample data not found at $DATA_DIR/study-001"
-    echo "Please ensure the data/sample-studies/study-001 directory exists."
+if [ ! -d "$FULL_STUDY_PATH" ]; then
+    echo "❌ Error: Sample data not found at $FULL_STUDY_PATH"
+    echo "Please ensure the directory exists."
+    echo ""
+    echo "Usage: $0 [study-directory]"
+    echo "  study-directory: Path to study folder (relative to data/sample-studies/ or absolute)"
+    echo "  Default: study-001"
+    echo ""
+    echo "Examples:"
+    echo "  $0                                    # Upload study-001 (default)"
+    echo "  $0 gaobowen-longitudinal             # Upload specific study"
+    echo "  $0 /path/to/custom/study             # Upload from absolute path"
     exit 1
 fi
 
@@ -51,23 +72,59 @@ wait_for_orthanc "hospital-1-query" 8063 || exit 1
 wait_for_orthanc "hospital-2" 8083 || exit 1
 echo ""
 
+# Register hospital DICOM modalities in main Orthanc
+echo "Registering hospital DICOM modalities in main Orthanc..."
+
+echo "   Registering hospital-1-query modality..."
+curl -s -X PUT -H "Content-Type: application/json" \
+    -d '["HOSPITAL_1_QUERY", "orthanc-hospital-1-query", 5000]' \
+    http://localhost:8053/modalities/hospital-1-query > /dev/null
+
+echo "   Registering hospital-1-store modality..."
+curl -s -X PUT -H "Content-Type: application/json" \
+    -d '["HOSPITAL_1_STORE", "orthanc-hospital-1-store", 4000]' \
+    http://localhost:8053/modalities/hospital-1-store > /dev/null
+
+echo "   Registering hospital-2 modality..."
+curl -s -X PUT -H "Content-Type: application/json" \
+    -d '["HOSPITAL_2", "orthanc-hospital-2", 4242]' \
+    http://localhost:8053/modalities/hospital-2 > /dev/null
+
+# Verify registration
+modalities_json=$(curl -s http://localhost:8053/modalities)
+if echo "$modalities_json" | grep -q "hospital-1-query" && \
+    echo "$modalities_json" | grep -q "hospital-1-store" && \
+    echo "$modalities_json" | grep -q "hospital-2"; then
+    echo "   ✓ All hospital DICOM modalities registered successfully"
+else
+    echo "   ⚠ Warning: Some modalities may not have been registered"
+fi
+
 # Upload to hospital-1-query
 echo "Uploading studies to hospital-1-query..."
 uploaded=0
 failed=0
-total=$(find "$DATA_DIR/study-001" -name "*.dcm" -type f | wc -l)
+total=$(find "$FULL_STUDY_PATH" -type f \( -name "*.dcm" -o -name "*.IMA" \) | wc -l)
+echo "  Found $total DICOM files to upload..."
 
-for dcm_file in $(find "$DATA_DIR/study-001" -name "*.dcm" -type f); do
+while IFS= read -r dcm_file; do
     result=$(curl -s -X POST -H "Content-Type: application/dicom" \
         --data-binary @"$dcm_file" \
         http://localhost:8063/instances 2>&1)
     
-    if echo "$result" | grep -q "Success"; then
+    # Check if the response contains an ID field (indicates success)
+    if echo "$result" | grep -q '"ID"'; then
         uploaded=$((uploaded + 1))
+        # Show progress every 10 files
+        if [ $((uploaded % 10)) -eq 0 ]; then
+            echo "  Progress: $uploaded/$total files uploaded..."
+        fi
     else
         failed=$((failed + 1))
+        echo "  ✗ Failed to upload: $(basename "$dcm_file")"
+        echo "    Response: $result" | head -1
     fi
-done
+done < <(find "$FULL_STUDY_PATH" -type f \( -name "*.dcm" -o -name "*.IMA" \))
 
 echo "  ✓ Uploaded $uploaded/$total files to hospital-1-query"
 if [ $failed -gt 0 ]; then
@@ -78,6 +135,7 @@ echo ""
 # Upload sample files to hospital-2
 echo "Uploading sample files to hospital-2..."
 uploaded=0
+failed=0
 sample_files=("$WORKSPACE_ROOT/sandbox/PACS-AI/node_modules/dicomweb-client/testData"/*.dcm)
 
 if [ ${#sample_files[@]} -gt 0 ] && [ -f "${sample_files[0]}" ]; then
@@ -88,17 +146,32 @@ if [ ${#sample_files[@]} -gt 0 ] && [ -f "${sample_files[0]}" ]; then
             --data-binary @"$dcm_file" \
             http://localhost:8083/instances 2>&1)
         
-        if echo "$result" | grep -q "Success"; then
+        # Check if the response contains an ID field (indicates success)
+        if echo "$result" | grep -q '"ID"'; then
             uploaded=$((uploaded + 1))
+        else
+            failed=$((failed + 1))
+            echo "  ✗ Failed to upload: $(basename "$dcm_file")"
         fi
     done
     echo "  ✓ Uploaded $uploaded sample files to hospital-2"
+    if [ $failed -gt 0 ]; then
+        echo "  ⚠ Failed to upload $failed sample files"
+    fi
 else
     echo "  ℹ No sample files found in node_modules (frontend not yet built)"
 fi
 echo ""
 
 # Summary
+echo "=========================================="
+echo "Registered DICOM Modalities:"
+echo "=========================================="
+echo ""
+echo "  • hospital-1-query (HOSPITAL_1_QUERY @ orthanc-hospital-1-query:5000)"
+echo "  • hospital-1-store (HOSPITAL_1_STORE @ orthanc-hospital-1-store:4000)"
+echo "  • hospital-2       (HOSPITAL_2 @ orthanc-hospital-2:4242)"
+echo ""
 echo "=========================================="
 echo "Upload Complete!"
 echo "=========================================="

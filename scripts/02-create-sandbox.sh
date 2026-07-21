@@ -22,16 +22,8 @@ sort -u -t '=' -k 1,1 $file2 $file1 | grep -v '^$\|^\s*\#' > $file3
 export $(grep -v '^#' .env | xargs)
 
 # Sync-up submodules to get PACS-AI frontend and backend at specified versions
-git submodule update --init
-git -C external/pacs-ai-backend checkout "$PACS_AI_BACKEND_VERSION"
-git -C external/pacs-ai-frontend checkout "$PACS_AI_FRONTEND_VERSION"
-git -C external/pacs-ai-backend pull origin "$PACS_AI_BACKEND_VERSION"
-git -C external/pacs-ai-frontend pull origin "$PACS_AI_FRONTEND_VERSION"
-
-if [ $ENVIRONMENT = "dev" ]; then
-    echo "Loading PACS-AI submodules recursively for development environment"
-    git -C external/pacs-ai-frontend submodule update --init --recursive
-fi
+git submodule update --init external/pacs-ai-backend
+git submodule update --init external/pacs-ai-frontend
 
 echo "PACS-AI components have been downloaded and checked out to specified versions."
 
@@ -175,8 +167,8 @@ fi
 
 # Install and use Node.js 18.17.0
 
-nvm install 18.17.0
-nvm use 18.17.0
+nvm install 20.20.2
+nvm use 20.20.2
 
 # Install Yarn globally
 npm install -g yarn
