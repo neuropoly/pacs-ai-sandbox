@@ -72,6 +72,34 @@ wait_for_orthanc "hospital-1-query" 8063 || exit 1
 wait_for_orthanc "hospital-2" 8083 || exit 1
 echo ""
 
+# Register hospital DICOM modalities in main Orthanc
+echo "Registering hospital DICOM modalities in main Orthanc..."
+
+echo "   Registering hospital-1-query modality..."
+curl -s -X PUT -H "Content-Type: application/json" \
+    -d '["HOSPITAL_1_QUERY", "orthanc-hospital-1-query", 5000]' \
+    http://localhost:8053/modalities/hospital-1-query > /dev/null
+
+echo "   Registering hospital-1-store modality..."
+curl -s -X PUT -H "Content-Type: application/json" \
+    -d '["HOSPITAL_1_STORE", "orthanc-hospital-1-store", 4000]' \
+    http://localhost:8053/modalities/hospital-1-store > /dev/null
+
+echo "   Registering hospital-2 modality..."
+curl -s -X PUT -H "Content-Type: application/json" \
+    -d '["HOSPITAL_2", "orthanc-hospital-2", 4242]' \
+    http://localhost:8053/modalities/hospital-2 > /dev/null
+
+# Verify registration
+modalities_json=$(curl -s http://localhost:8053/modalities)
+if echo "$modalities_json" | grep -q "hospital-1-query" && \
+    echo "$modalities_json" | grep -q "hospital-1-store" && \
+    echo "$modalities_json" | grep -q "hospital-2"; then
+    echo "   ✓ All hospital DICOM modalities registered successfully"
+else
+    echo "   ⚠ Warning: Some modalities may not have been registered"
+fi
+
 # Upload to hospital-1-query
 echo "Uploading studies to hospital-1-query..."
 uploaded=0
@@ -136,6 +164,14 @@ fi
 echo ""
 
 # Summary
+echo "=========================================="
+echo "Registered DICOM Modalities:"
+echo "=========================================="
+echo ""
+echo "  • hospital-1-query (HOSPITAL_1_QUERY @ orthanc-hospital-1-query:5000)"
+echo "  • hospital-1-store (HOSPITAL_1_STORE @ orthanc-hospital-1-store:4000)"
+echo "  • hospital-2       (HOSPITAL_2 @ orthanc-hospital-2:4242)"
+echo ""
 echo "=========================================="
 echo "Upload Complete!"
 echo "=========================================="

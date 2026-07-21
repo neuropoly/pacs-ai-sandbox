@@ -28,7 +28,7 @@ if [ $ENVIRONMENT = "dev" ]; then
 
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-    nvm use 18.17.0
+    nvm use 20.20.2
     yarn start &
     cd $CWD
 
